@@ -26,7 +26,7 @@ class User:
     def setEmail(self, email):
         # with regular expressions, check if email is valid (contains @, etc.)
         if re.match(
-            r"^(?=.*[0-9])(?=.*[a-z])(?=.*[A-Z])(?=.*[@#$%^&+=])(?=.{8,})", email
+            r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$', email
         ):
             self.email = email
             return True
@@ -37,13 +37,13 @@ class User:
     def setPassword(self, password):
         # with regex, check if password is valid (contains at least 1 number, 1 uppercase, 1 lowercase, 1 special character, and is at least 8 characters long)
         if re.match(
-            r"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]", password
+            r'^(?=.*[0-9])(?=.*[A-Z])(?=.*[a-z])(?=.*[@#$%^&+=!?]).{8,}$', password
         ):
             self.password = password
             return True
         else:
             print(
-                "Invalid password. Password must use: 1 number, 1 uppercase, 1 lowercase, 1 special character and be at least 8 characters long."
+                "Invalid password."
             )
             return False
 
@@ -75,14 +75,56 @@ def createUser():
             continue
 
     # store user data in individual .json file with username as filename
-    username.json = {"username": username, "email": email, "password": password}
     with open(username + ".json", "w") as file:
-        json.dump(username.json, file)
+        json.dump(
+            {
+                "username": username,
+                "email": email,
+                "password": password,
+            },
+            file,
+            indent=4,
+        )
+    print("User created successfully!")
 
+#function, that asks user to enter username and password, checks if user exists and if password is correct, if so, user is logged in, if not, user is asked to try again
+def login():
+    username = input("Enter your username: ")
+    password = input("Enter your password: ")
+    try:
+        with open(username + ".json", "r") as file:
+            data = json.load(file)
+            #if password matches, user is logged in and can use the API
+            if password == data["password"]:
+                print("Login successful!")
+                loggedIn()
+            else:
+                print("Incorrect password. Please try again.")
+    #if username is not found, user is asked to try again
+    except FileNotFoundError:
+        print("User not found. Please try again or register.")
+
+def loggedIn():
+    while True:
+        choice = loggedInMenu()
+        match choice:
+            case "1":
+                print("Search for news")
+            case "2":
+                print("Goodbye!")
+                exit()
+            case _:
+                print("Invalid choice. Please try again.")
+                continue
+
+def loggedInMenu():
+    print("1. Search for news")
+    print("2. Exit")
+    choice = input("Enter your choice: ")
+    return choice
 
 # menu function to manage options to user (login, register, exit)
 def menu():
-    print("Welcome to the News API!")
     print("1. Login")
     print("2. Register")
     print("3. Exit")
@@ -90,12 +132,13 @@ def menu():
     return choice
 
 def main():
+    print("Welcome to the News API!")
     while True:
         #menu fuctionality with case-match to call functions
         choice = menu()
         match choice:
             case "1":
-                print("Login")
+                login()
             case "2":
                 createUser()
             case "3":
@@ -103,4 +146,7 @@ def main():
                 exit()
             case _:
                 print("Invalid choice. Please try again.")
-                continue   
+                continue
+
+if __name__ == "__main__":
+    main()
