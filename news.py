@@ -88,3 +88,19 @@ def menu():
     print("3. Exit")
     choice = input("Enter your choice: ")
     return choice
+
+def main():
+    while True:
+        #menu fuctionality with case-match to call functions
+        choice = menu()
+        match choice:
+            case "1":
+                print("Login")
+            case "2":
+                createUser()
+            case "3":
+                print("Goodbye!")
+                exit()
+            case _:
+                print("Invalid choice. Please try again.")
+                continue   
