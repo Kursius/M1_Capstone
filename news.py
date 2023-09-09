@@ -7,6 +7,7 @@ import ssl
 import smtplib
 import requests
 from email.message import EmailMessage
+import random
 
 
 # class to store user data(username, email, password)
@@ -97,30 +98,39 @@ def createUser():
         )
     print("User created successfully!")
 
+#function to read user data from .json file and create a User object from it
+def readUser(username):
+    with open(username + ".json", "r") as file:
+        data = json.load(file)
+        user = User(data["username"], data["email"], data["password"])
+        return user
+
 #function, that asks user to enter username and password, checks if user exists and if password is correct, if so, user is logged in, if not, user is asked to try again
 def login():
     username = input("Enter your username: ")
     password = input("Enter your password: ")
     try:
-        with open(username + ".json", "r") as file:
-            data = json.load(file)
-            #if password matches, user is logged in and can use the API
-            if password == data["password"]:
-                print("Login successful!")
-                loggedIn()
-            else:
-                print("Incorrect password. Please try again or reset the password.")
+        user = readUser(username)
+        if password == user.password:
+            print("Login successful!")
+            loggedIn(user)
+        else:
+            print("Incorrect password. Please try again.")
     #if username is not found, user is asked to try again
     except FileNotFoundError:
         print("User not found. Please try again, or register.")
 
-def loggedIn():
+def loggedIn(user):
     while True:
         choice = loggedInMenu()
         match choice:
             case "1":
-                print("Search for news")
+                print("Search for weather")
             case "2":
+                print("Search for news")
+            case "3":
+                changePassword(user)
+            case "4":
                 print("Goodbye!")
                 exit()
             case _:
@@ -129,8 +139,9 @@ def loggedIn():
 
 def loggedInMenu():
     print("1. Search for weather")
-    print("2. Change password")
-    print("3. Exit")
+    print("2. Search for news")
+    print("3. Change password")
+    print("4. Exit")
     choice = input("Enter your choice: ")
     return choice
 
@@ -144,7 +155,7 @@ def sendEmail(user, message):
     em = EmailMessage()
     em["From"] = email_sender
     em["To"] = email_receiver
-    em["Subject"] = "Your information"
+    em["Subject"] = "News+Weather API"
     em.set_content(message)
     context = ssl.create_default_context()
 
@@ -153,20 +164,64 @@ def sendEmail(user, message):
         smtp.login(email_sender, email_pass)
         smtp.sendmail(email_sender, email_receiver, em.as_string())
 
+#function to update the user .json file
+def updateUser(user):
+    with open(user.username + ".json", "w") as file:
+        json.dump(
+            {
+                "username": user.username,
+                "email": user.email,
+                "password": user.password,
+            },
+            file,
+            indent=4,
+        )
+
+#function to change user password when user is logged in
+#ask for current password, check if correct, if so, change password
+def changePassword(user):
+    currentPassword = input("Enter your current password: ")
+    if currentPassword == user.password:
+        while True:
+            password = input(
+                "Enter a password. Password must contain at least 1 number, 1 uppercase, 1 lowercase and 1 special character: "
+            )
+            if user.setPassword(password):
+                break
+            else:
+                continue
+        updateUser(user)
+        print("Password changed successfully!")
+    else:
+        print("Incorrect password. Please try again.")
+
 #function to ask user for his username, check if user exists, if so, send email with link to reset password
 def resetPassword():
     username = input("Enter your username: ")
     try:
-        with open(username + ".json", "r") as file:
-            data = json.load(file)
-            print("Password reset email sent to " + data["email"])
-
+        user = readUser(username)
+        #generate 6 digit code
+        code = random.randint(100000, 999999)
+        body = f"""Your password reset code is: {code}\n
+        Please enter this code in the application to reset your password."""
+        sendEmail(user, body)
+        print("Password reset code sent to your email address.")
+        userCode = input("Enter the code you received: ")
+        #if code matches, user is asked to enter new password
+        if userCode == str(code):
+            print("Code correct!")
+            while True:
+                password = input(
+                    "Enter a password. Password must contain at least 1 number, 1 uppercase, 1 lowercase and 1 special character: "
+                )
+                if user.setPassword(password):
+                    break
+                else:
+                    continue
+            updateUser(user)
+            print("Password changed successfully!")
     except FileNotFoundError:
         print("User not found. Please try again, or register.")
-
-#function to send email with 6 dgit code to user, user enters code, if code is correct, user can reset password
-def sendPasswordCode():
-    pass
 
 # menu function to manage options to user (login, register, exit)
 def menu():
@@ -188,7 +243,7 @@ def main():
             case "2":
                 createUser()
             case "3":
-                print("Reset password")
+                resetPassword()
             case "4":
                 print("Goodbye!")
                 exit()
