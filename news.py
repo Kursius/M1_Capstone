@@ -21,12 +21,14 @@ class User:
         self.username = username
         self.email = email
         self.password = password
-
+    
+    #setters
     def setUsername(self, username):
         # check if username is already taken by reading .json file with username as filename
         try:
             with open(username + ".json", "r") as file:
-                print("Username already taken. Please select a diffrent username.")
+                print("\033[31mUsername already taken. Please select a diffrent username.\033[0m")
+                print("")
                 return False
         except FileNotFoundError:
             self.username = username
@@ -38,7 +40,7 @@ class User:
             self.email = email
             return True
         else:
-            print("Invalid email address.")
+            print("\033[31mInvalid email address.\033[0m")
             return False
 
     def setPassword(self, password):
@@ -49,14 +51,43 @@ class User:
             self.password = password
             return True
         else:
-            print("Invalid password.")
+            print("\033[31mInvalid password.\033[0m")
             return False
 
     def getEmail(self):
         return self.email
+    
+    #methods
+    def changePassword(self) -> None:
+        currentPassword = input("Enter your current password: ")
+        if currentPassword == self.password:
+            while True:
+                password = input(
+                    "Enter a password. Password must contain at least 1 number, 1 uppercase, 1 lowercase and 1 special character: "
+                )
+                if self.setPassword(password):
+                    break
+                else:
+                    continue
+            updateUser(self)
+            print("\033[32mPassword changed successfully!\033[0m")
+        else:
+            print("\033[31mIncorrect password. Please try again.\033[0m")
 
+    
+    def updateUser(self):
+        with open(self.username + ".json", "w") as file:
+            json.dump(
+                {
+                    "username": self.username,
+                    "email": self.email,
+                    "password": self.password,
+                },
+                file,
+                indent=4,
+            )
 
-def getWeather(user):
+def getWeather(user: User) -> None:
     # get weather data from API
     apiKey = API_WEATHER
     location = input("Enter location: ")
@@ -66,7 +97,7 @@ def getWeather(user):
     data = response.json()
     # if location is not found, user is asked to try again
     if "error" in data:
-        print("Location not found. Please try again.")
+        print("\033[31mLocation not found. Please try again.\033[0m")
         return
     # if location is found, weather data is printed
     else:
@@ -85,11 +116,11 @@ def getWeather(user):
             body += f"Chance of snow: {data['forecast']['forecastday'][i]['day']['daily_chance_of_snow']}%\n"
             body += "\n"
         sendEmail(user, body)
-        print("Weather forecast sent to your email address.")
+        print("\033[32mWeather forecast sent to your email address.\033[0m")
 
 
 # function to get news data from API by category, that user can enter, and the amount of articles, that user can enter
-def getNews(user):
+def getNews(user : User) -> None:
     apiKey = API_NEWS
     category = input("Enter news category: ")
     amount = input("Enter the amount of articles (1-10): ")
@@ -98,7 +129,7 @@ def getNews(user):
     data = response.json()
     # if category is not found, user is asked to try again
     if data["totalResults"] == 0:
-        print("Category not found. Please try again.")
+        print("\033[31mCategory not found. Please try again.\033[0m")
         return
     # if category is found, news data is printed
 
@@ -112,11 +143,11 @@ def getNews(user):
             body += f"Link: {data['articles'][i]['url']}\n"
             body += "\n"
         sendEmail(user, body)
-        print("News sent to your email address.")
+        print("\033[32mNews sent to your email address.\033[0m")
 
 
 # using User class to create a new user
-def createUser():
+def createUser() -> None:
     user = User()
     while True:
         username = input("Enter your username: ")
@@ -152,11 +183,10 @@ def createUser():
             file,
             indent=4,
         )
-    print("User created successfully!")
-
+    print("\033[32mUser created successfully!\033[0m")
 
 # function to read user data from .json file and create a User object from it
-def readUser(username):
+def readUser(username : str) -> User:
     with open(username + ".json", "r") as file:
         data = json.load(file)
         user = User(data["username"], data["email"], data["password"])
@@ -164,22 +194,22 @@ def readUser(username):
 
 
 # function, that asks user to enter username and password, checks if user exists and if password is correct, if so, user is logged in, if not, user is asked to try again
-def login():
+def login() -> None:
     username = input("Enter your username: ")
     password = input("Enter your password: ")
     try:
         user = readUser(username)
         if password == user.password:
-            print("Login successful!")
+            print("\033[32mLogin successful!\033[0m")
             loggedIn(user)
         else:
-            print("Incorrect password. Please try again.")
+            print("\033[31mIncorrect password. Please try again.\033[0m")
     # if username is not found, user is asked to try again
     except FileNotFoundError:
-        print("User not found. Please try again, or register.")
+        print("\033[31mUser not found. Please try again, or register.\033[0m")
 
 
-def loggedIn(user):
+def loggedIn(user : User) -> None:
     while True:
         choice = loggedInMenu()
         match choice:
@@ -192,17 +222,17 @@ def loggedIn(user):
             case "3":
                 changePassword(user)
             case "4":
-                print("Logged out successfully!")
+                print("\033[32mLogged out successfully!\033[0m")
                 return
             case "5":
                 print("Goodbye!")
                 exit()
             case _:
-                print("Invalid choice. Please try again.")
+                print("\033[31mInvalid choice. Please try again.\033[0m")
                 continue
 
 
-def loggedInMenu():
+def loggedInMenu() -> str:
     print("1. Weather")
     print("2. News")
     print("3. Change password")
@@ -212,7 +242,7 @@ def loggedInMenu():
     return choice
 
 
-def sendEmail(user, message):
+def sendEmail(user : User, message : str) -> None:
     email_sender = EMAIL_SENDER
     email_pass = EMAIL_PASSWORD
     email_receiver = user.email
@@ -246,7 +276,7 @@ def updateUser(user):
 
 # function to change user password when user is logged in
 # ask for current password, check if correct, if so, change password
-def changePassword(user):
+def changePassword(user :User) -> None:
     currentPassword = input("Enter your current password: ")
     if currentPassword == user.password:
         while True:
@@ -258,13 +288,13 @@ def changePassword(user):
             else:
                 continue
         updateUser(user)
-        print("Password changed successfully!")
+        print("\033[32mPassword changed successfully!\033[0m")
     else:
-        print("Incorrect password. Please try again.")
+        print("\033[31mIncorrect password. Please try again.\033[0m")
 
 
 # function to ask user for his username, check if user exists, if so, send email with link to reset password
-def resetPassword():
+def resetPassword() -> None:
     username = input("Enter your username: ")
     try:
         user = readUser(username)
@@ -274,26 +304,32 @@ def resetPassword():
         Please enter this code in the application to reset your password."""
         sendEmail(user, body)
         print("Password reset code sent to your email address.")
-        userCode = input("Enter the code you received: ")
+        
         # if code matches, user is asked to enter new password
-        if userCode == str(code):
-            print("Code correct!")
-            while True:
-                password = input(
-                    "Enter a password. Password must contain at least 1 number, 1 uppercase, 1 lowercase and 1 special character: "
-                )
-                if user.setPassword(password):
-                    break
-                else:
-                    continue
-            updateUser(user)
-            print("Password changed successfully!")
+        while True:
+            userCode = input("Enter the code you received: ")
+            if userCode == str(code):
+                print("\033[32mCode correct!\033[0m")
+                while True:
+                    password = input(
+                        "Enter a password. Password must contain at least 1 number, 1 uppercase, 1 lowercase and 1 special character: "
+                    )
+                    if user.setPassword(password):
+                        break
+                    else:
+                        continue
+                updateUser(user)
+                print("\033[32mPassword changed successfully!\033[0m")
+            else:
+                print("\033[31mCode incorrect. Please try again.\033[0m")
+                continue
+
     except FileNotFoundError:
-        print("User not found. Please try again, or register.")
+        print("\033[31mUser not found. Please try again, or register.\033[0m")
 
 
 # menu function to manage options to user (login, register, exit)
-def menu():
+def menu() -> str:
     print("1. Login")
     print("2. Register")
     print("3. Reset password")
@@ -302,7 +338,7 @@ def menu():
     return choice
 
 
-def main():
+def main() -> None:
     print("Welcome to the News API!")
     while True:
         # menu fuctionality with case-match to call functions
@@ -319,7 +355,7 @@ def main():
                 print("Goodbye!")
                 exit()
             case _:
-                print("Invalid choice. Please try again.")
+                print("\033[31mInvalid choice. Please try again.\033[0m")
                 continue
 
 
